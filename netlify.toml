@@ -1,0 +1,25 @@
+# Netlify configuration — EZ-one candidature demo
+# Doc: https://docs.netlify.com/configure-builds/file-based-configuration/
+
+[build]
+  # Pas de build step : le site est du HTML/CSS/JS pur.
+  publish = "frontend"
+  command = ""
+
+# Indication explicite (Netlify detecte le form dans index.html au build).
+# Aucune action supplementaire requise — le form est detecte grace a
+# data-netlify="true" + name="candidature".
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# Sert merci.html sans .html dans l'URL si quelqu'un tape /merci
+[[redirects]]
+  from = "/merci"
+  to = "/merci.html"
+  status = 200

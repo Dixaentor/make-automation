@@ -1,0 +1,48 @@
+# Secrets & local config
+.env
+.env.*
+!.env.example
+config.local.js
+config.js
+frontend/config.local.js
+frontend/config.js
+**/secrets.json
+
+# Node / build artefacts (au cas ou)
+node_modules/
+dist/
+build/
+.claude/
+.cache/
+.parcel-cache/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Make.com / n8n exports locaux contenant des cles
+*.blueprint.json
+*.workflow.json
+make-export-*.json
+n8n-export-*.json
+
+# Cles et credentials
+*.pem
+*.key
+service-account*.json
+google-credentials.json
+
+# Tests / coverage
+coverage/
+.nyc_output/
+docs/
