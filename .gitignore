@@ -3,9 +3,7 @@
 .env.*
 !.env.example
 config.local.js
-config.js
 frontend/config.local.js
-frontend/config.js
 **/secrets.json
 
 # Node / build artefacts (au cas ou)
