@@ -11,17 +11,24 @@
 //   1. Creez un compte sur https://cloudinary.com (free tier : 10 Go storage,
 //      20 Go bandwidth/mois, 100 Mo/fichier).
 //   2. Console > Settings > Upload > Upload presets > Add upload preset.
-//   3. Configuration recommandee :
-//        - Signing Mode      : Unsigned
-//        - Preset name       : ez_one_candidatures
-//        - Folder            : candidatures
-//        - Use filename      : true
-//        - Unique filename   : true
-//        - Max file size     : 100000000 (100 Mo)
-//        - Allowed formats   : pdf,mp4,webm,mov
-//        - Resource type     : Auto
-//   4. Save. Copiez le nom du preset.
-//   5. Le cloud_name est en haut de la console Cloudinary.
+//   3. Configuration recommandee — onglet "General" :
+//        - Signing Mode        : Unsigned
+//        - Preset name         : ez_one_candidatures
+//        - Folder              : candidatures
+//        - Use filename        : true
+//        - Unique filename     : true
+//   4. Onglet "Upload control" :
+//        - Allowed formats     : pdf,mp4,webm,mov
+//        - Max file size       : 100000000 (100 Mo)
+//        - Resource type       : Auto
+//   5. Onglet "Advanced" — IMPORTANT :
+//        - Return delete token : true   <-- INDISPENSABLE
+//        Ce flag doit etre active dans le preset (et NON passe en parametre
+//        cote front, car interdit en unsigned upload). Il fait que la reponse
+//        d'upload contient un `delete_token` valide 10 min, qui permet au
+//        navigateur de supprimer le fichier si le candidat change d'avis.
+//   6. Save. Copiez le nom du preset.
+//   7. Le cloud_name est en haut de la console Cloudinary.
 
 window.EZONE_CONFIG = {
   CLOUDINARY: {

@@ -77,6 +77,7 @@ python -m http.server 8000
 2. Console > **Settings** > **Upload** > **Upload presets** > **Add upload preset**.
 3. Configuration recommandee :
 
+   **Onglet General**
    | Champ              | Valeur                          |
    |--------------------|---------------------------------|
    | Signing Mode       | **Unsigned**                    |
@@ -84,9 +85,23 @@ python -m http.server 8000
    | Folder             | `candidatures`                  |
    | Use filename       | `true`                          |
    | Unique filename    | `true`                          |
+
+   **Onglet Upload control**
+   | Champ              | Valeur                          |
+   |--------------------|---------------------------------|
    | Max file size      | `100000000` (100 Mo)            |
    | Allowed formats    | `pdf,mp4,webm,mov`              |
    | Resource type      | `Auto`                          |
+
+   **Onglet Advanced — IMPORTANT**
+   | Champ                  | Valeur     |
+   |------------------------|------------|
+   | **Return delete token**| **`true`** |
+
+   Sans ce dernier flag, l'API Cloudinary ne renvoie pas de `delete_token` dans la
+   reponse d'upload, et le bouton "X" sur le formulaire ne pourra pas supprimer le
+   fichier cote serveur. Le flag DOIT etre defini dans le preset (en unsigned upload,
+   il est interdit de le passer en parametre lors de la requete).
 
 4. Save.
 5. Ouvrez `frontend/config.js` :

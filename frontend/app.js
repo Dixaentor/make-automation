@@ -331,9 +331,10 @@
       fd.append("file", file);
       fd.append("upload_preset", cfg.CLOUDINARY.upload_preset);
       if (cfg.CLOUDINARY.folder) fd.append("folder", cfg.CLOUDINARY.folder);
-      // Demande un delete_token (valide 10 min) pour pouvoir supprimer cote
-      // navigateur si l'utilisateur change d'avis avant de soumettre.
-      fd.append("return_delete_token", "true");
+      // NOTE : "Return delete token" doit etre ACTIVE dans le preset Cloudinary
+      // (Settings > Upload > Upload presets > Edit > Advanced > Return delete token).
+      // En unsigned upload, ce parametre n'est PAS autorise dans le formulaire :
+      // il doit imperativement etre configure cote preset.
 
       const xhr = new XMLHttpRequest();
       xhr.open("POST", url);
