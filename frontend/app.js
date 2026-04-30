@@ -331,6 +331,9 @@
       fd.append("file", file);
       fd.append("upload_preset", cfg.CLOUDINARY.upload_preset);
       if (cfg.CLOUDINARY.folder) fd.append("folder", cfg.CLOUDINARY.folder);
+      // Demande un delete_token (valide 10 min) pour pouvoir supprimer cote
+      // navigateur si l'utilisateur change d'avis avant de soumettre.
+      fd.append("return_delete_token", "true");
 
       const xhr = new XMLHttpRequest();
       xhr.open("POST", url);
@@ -412,6 +415,49 @@
     });
   }
 
+  // ---------- Cloudinary delete (delete_by_token) ----------
+  // Le delete_token est obtenu a l'upload (return_delete_token=true) et reste
+  // valide ~10 minutes. Permet a l'utilisateur de retirer son fichier sans
+  // qu'on ait besoin d'une cle secrete cote front.
+  // Fire-and-forget : on ne bloque pas l'UI, on log les echecs.
+  async function cloudinaryDelete(deleteToken) {
+    if (!deleteToken || !CLOUDINARY_CONFIGURED) return false;
+    try {
+      const url = `https://api.cloudinary.com/v1_1/${cfg.CLOUDINARY.cloud_name}/delete_by_token`;
+      const fd = new FormData();
+      fd.append("token", deleteToken);
+      const resp = await fetch(url, { method: "POST", body: fd });
+      if (!resp.ok) {
+        console.warn(`[EZ-one] Cloudinary delete HTTP ${resp.status}`);
+        return false;
+      }
+      const json = await resp.json();
+      if (json.result === "ok") {
+        console.info("[EZ-one] fichier supprime de Cloudinary");
+        return true;
+      }
+      // Cas typique : token expire (>10 min). On ne derange pas l'utilisateur.
+      console.warn("[EZ-one] Cloudinary delete refuse :", json);
+      return false;
+    } catch (e) {
+      // Reseau coupe, CORS, etc. On log et on continue : l'UI reste reactive.
+      console.warn("[EZ-one] Cloudinary delete a echoue :", e.message);
+      return false;
+    }
+  }
+
+  // Variante non-bloquante via sendBeacon, utilisee quand la page se ferme.
+  // sendBeacon est garanti d'etre envoye meme si l'onglet se ferme.
+  function cloudinaryDeleteBeacon(deleteToken) {
+    if (!deleteToken || !CLOUDINARY_CONFIGURED) return;
+    try {
+      const url = `https://api.cloudinary.com/v1_1/${cfg.CLOUDINARY.cloud_name}/delete_by_token`;
+      const fd = new FormData();
+      fd.append("token", deleteToken);
+      navigator.sendBeacon(url, fd);
+    } catch { /* noop */ }
+  }
+
   // ---------- Upload state helpers (verrouille la nav pendant un upload) ----------
   function lockNav(locked) {
     state.uploading = locked;
@@ -467,6 +513,11 @@
   cvClear.addEventListener("click", (e) => {
     e.preventDefault();   // empeche le label de declencher le file picker
     e.stopPropagation();
+
+    // Capture le delete_token AVANT de reset le state (fire-and-forget).
+    const token = state.cvUploaded && state.cvUploaded.delete_token;
+
+    // UI reset immediat — on n'attend pas la confirmation Cloudinary
     state.cv = null; state.cvUploaded = null;
     hidden.cv_url.value = ""; hidden.cv_public_id.value = ""; hidden.cv_bytes.value = "";
     cvInput.value = "";
@@ -476,6 +527,9 @@
     cvClear.hidden = true;
     cvNext.disabled = true;
     setStatus("");
+
+    // Suppression cote Cloudinary (silencieuse, n'affecte pas l'UI)
+    if (token) cloudinaryDelete(token);
   });
 
   // ---------- Video flow ----------
@@ -540,6 +594,9 @@
   videoClear.addEventListener("click", (e) => {
     e.preventDefault();   // empeche le label de declencher le file picker
     e.stopPropagation();
+
+    const token = state.videoUploaded && state.videoUploaded.delete_token;
+
     state.video = null; state.videoUploaded = null;
     hidden.video_url.value = ""; hidden.video_public_id.value = "";
     hidden.video_bytes.value = ""; hidden.video_duration.value = "";
@@ -552,6 +609,8 @@
     videoPreview.src = "";
     submitBtn.disabled = true;
     setStatus("");
+
+    if (token) cloudinaryDelete(token);
   });
 
   // ---------- Form submit (Netlify Forms) ----------
@@ -591,6 +650,8 @@
         Object.fromEntries(fd.entries())
       );
       setStatus("(local) Dossier valide. Redirection vers la confirmation.", "ok");
+      // Marque comme soumis -> beforeunload n'effacera PAS les fichiers Cloudinary
+      state.submitted = true;
       setTimeout(() => { window.location.href = form.action || "/merci.html"; }, 700);
       return;
     }
@@ -604,6 +665,8 @@
       .then(async (resp) => {
         if (resp.ok || resp.status === 200 || resp.status === 302) {
           setStatus("Dossier transmis. Redirection...", "ok");
+          // Le dossier est entre les mains de Netlify -> on garde les fichiers
+          state.submitted = true;
           setTimeout(() => { window.location.href = form.action || "/merci.html"; }, 600);
           return;
         }
@@ -639,6 +702,22 @@
       if (nextBtn && !nextBtn.disabled) nextBtn.click();
     }
     // Sur le step 3, Enter laisse le form submit naturellement
+  });
+
+  // ---------- Cleanup des orphelins Cloudinary a la fermeture de la page ----------
+  // Si l'utilisateur a uploade des fichiers MAIS n'a pas soumis le formulaire
+  // (ferme l'onglet, navigue ailleurs, refresh), on supprime les fichiers
+  // Cloudinary via sendBeacon (garanti d'etre envoye meme pendant unload).
+  // sendBeacon est ignore si la page se decharge apres un submit reussi
+  // car state.submitted=true.
+  window.addEventListener("beforeunload", () => {
+    if (state.submitted) return;
+    if (state.cvUploaded && state.cvUploaded.delete_token) {
+      cloudinaryDeleteBeacon(state.cvUploaded.delete_token);
+    }
+    if (state.videoUploaded && state.videoUploaded.delete_token) {
+      cloudinaryDeleteBeacon(state.videoUploaded.delete_token);
+    }
   });
 
   // ---------- Avertir si offline / online ----------
